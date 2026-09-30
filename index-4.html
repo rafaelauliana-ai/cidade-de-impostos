@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cidade dos Tributos — jogo para feira técnica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF1E4; --card:#F8FAF3; --ink:#1C3328; --ink2:#4A5E52; --line:#C4CFB8;
+  --stamp:#C23A2B; --mun:#2F8A4C; --est:#2A5BA8; --fed:#D0661C; --ref:#7A3E9D; --nt:#7F867C; --bonus:#B8900F; --carta:#C23A2B;
+  --center:#DCE5CF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131D17; --card:#1B2820; --ink:#E4ECDD; --ink2:#A7B6A5; --line:#34463A;
+    --stamp:#EF6A5A; --mun:#5CC07A; --est:#6E9BE6; --fed:#F08C47; --ref:#B884D6; --nt:#98A095; --bonus:#E3BE45; --carta:#EF6A5A;
+    --center:#1F2E24;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131D17; --card:#1B2820; --ink:#E4ECDD; --ink2:#A7B6A5; --line:#34463A;
+  --stamp:#EF6A5A; --mun:#5CC07A; --est:#6E9BE6; --fed:#F08C47; --ref:#B884D6; --nt:#98A095; --bonus:#E3BE45; --carta:#EF6A5A;
+  --center:#1F2E24;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+img{max-width:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--est);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:16px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;border-bottom:3px double var(--ink);padding-bottom:12px;margin-bottom:16px}
+h1{font-stretch:125%;font-weight:800;font-size:clamp(1.7rem,5vw,2.6rem);line-height:1;margin:0;letter-spacing:-.01em}
+.sub{margin:.35rem 0 0;color:var(--ink2);font-size:.95rem}
+nav.tabs{display:flex;gap:4px}
+nav.tabs button{border:2px solid var(--ink);background:transparent;padding:.45rem .9rem;font-weight:700;border-radius:999px}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+
+/* ---------- setup ---------- */
+.panel{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:18px}
+.setup{display:grid;gap:16px;max-width:620px}
+.setup h2{margin:0;font-stretch:110%;font-size:1.3rem}
+.players-in{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.players-in label{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:10px;padding:6px 10px;background:var(--paper)}
+.players-in input{border:0;background:transparent;width:100%;padding:4px 0}
+.players-in input:focus{outline:none}
+.dot{width:14px;height:14px;border-radius:50%;flex:none;border:2px solid var(--paper);box-shadow:0 0 0 1.5px var(--ink)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.field{display:grid;gap:4px;font-size:.9rem;color:var(--ink2)}
+.field input,.field select{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--paper);min-width:120px}
+.check{display:flex;gap:8px;align-items:center;font-size:.95rem}
+.btn{border:2px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:12px;padding:.7rem 1.2rem;font-weight:800;font-stretch:110%}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.hint{font-size:.85rem;color:var(--ink2);margin:0}
+
+/* ---------- board ---------- */
+.game{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 300px;align-items:start}
+@media (max-width:860px){.game{grid-template-columns:1fr}}
+.board{display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(6,1fr);gap:3px;aspect-ratio:1;background:var(--ink);border:3px solid var(--ink);border-radius:10px;overflow:hidden;max-width:640px;width:100%;margin:0 auto}
+.tile{position:relative;background:var(--card);display:flex;flex-direction:column;padding:0 4px 4px;min-width:0;overflow:hidden}
+.tile .stripe{height:14%;margin:0 -4px 4px;background:var(--c)}
+.tile .nm{font-weight:700;font-size:clamp(.55rem,1.6vw,.82rem);line-height:1.1;font-stretch:88%}
+.tile .vl{margin-top:auto;font-size:clamp(.55rem,1.5vw,.78rem);color:var(--ink2);font-variant-numeric:tabular-nums}
+.tile.corner{background:var(--center)}
+.tile.corner .nm{font-stretch:100%}
+.tile .pawns{position:absolute;right:3px;bottom:3px;display:flex;flex-wrap:wrap;gap:2px;max-width:60%;justify-content:flex-end}
+.tile .pawns i{width:clamp(9px,2.2vw,15px);height:clamp(9px,2.2vw,15px);border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--ink)}
+.tile.here{box-shadow:inset 0 0 0 3px var(--ink)}
+.mid{grid-row:2/6;grid-column:2/6;background:var(--center);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(4px,1.5vw,12px);text-align:center;padding:8px}
+.mid .seal{font-stretch:125%;font-weight:800;font-size:clamp(.9rem,3.4vw,1.6rem);line-height:1}
+.mid .who{font-size:clamp(.75rem,2.2vw,1rem);color:var(--ink2)}
+.mid .who b{color:var(--ink)}
+.dice{display:flex;gap:clamp(14px,4vw,26px);--s:clamp(42px,11.5vw,74px);margin:2px 0;cursor:pointer;border-radius:12px}
+.dice.locked{cursor:default}
+.die{position:relative;width:var(--s);height:calc(var(--s) * 1.4);display:flex;align-items:flex-end;perspective:calc(var(--s) * 7)}
+.toss{position:relative;z-index:1;width:var(--s);height:var(--s);transform-style:preserve-3d;transform:translateY(0) rotateZ(var(--z,0deg))}
+.cube{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform 1.3s cubic-bezier(.2,.65,.3,1)}
+.shadow{position:absolute;left:10%;right:10%;bottom:-7%;height:16%;border-radius:50%;background:rgba(0,0,0,.3);filter:blur(3px)}
+.die.throw .toss{animation:toss 1.3s linear}
+.die.throw .shadow{animation:shad 1.3s linear}
+@keyframes toss{
+  0%{transform:translateY(0) rotateZ(var(--z,0deg));animation-timing-function:cubic-bezier(.2,.7,.4,1)}
+  28%{transform:translateY(-42%) rotateZ(var(--z,0deg));animation-timing-function:cubic-bezier(.6,0,.9,.5)}
+  55%{transform:translateY(0) rotateZ(var(--z,0deg));animation-timing-function:cubic-bezier(.2,.7,.4,1)}
+  68%{transform:translateY(-13%) rotateZ(var(--z,0deg));animation-timing-function:cubic-bezier(.6,0,.9,.5)}
+  80%{transform:translateY(0) rotateZ(var(--z,0deg));animation-timing-function:cubic-bezier(.2,.7,.4,1)}
+  87%{transform:translateY(-4%) rotateZ(var(--z,0deg))}
+  94%,100%{transform:translateY(0) rotateZ(var(--z,0deg))}}
+@keyframes shad{0%,55%,80%,94%,100%{transform:scale(1);opacity:1}28%{transform:scale(.55);opacity:.35}68%{transform:scale(.85);opacity:.75}}
+.face{position:absolute;inset:0;border-radius:17%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:15%;
+  background:radial-gradient(circle at 28% 22%,#ffffff 0%,#F3F1E8 55%,#DCD8CA 100%);
+  border:1px solid rgba(0,0,0,.28);box-shadow:inset 0 0 calc(var(--s) * .14) rgba(60,50,20,.22);
+  backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.face span{width:72%;aspect-ratio:1;border-radius:50%;place-self:center;visibility:hidden;
+  background:radial-gradient(circle at 38% 32%,#3E4F45 0%,#16241C 70%);box-shadow:inset 0 1.5px 2px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.8)}
+.face span.on{visibility:visible}
+.f1 span{width:95%;background:radial-gradient(circle at 38% 32%,#E8604F 0%,#A3261A 72%)}
+.f1{transform:translateZ(calc(var(--s) / 2))}
+.f6{transform:rotateY(180deg) translateZ(calc(var(--s) / 2))}
+.f2{transform:rotateY(90deg) translateZ(calc(var(--s) / 2))}
+.f5{transform:rotateY(-90deg) translateZ(calc(var(--s) / 2))}
+.f3{transform:rotateX(90deg) translateZ(calc(var(--s) / 2))}
+.f4{transform:rotateX(-90deg) translateZ(calc(var(--s) / 2))}
+.core{position:absolute;inset:4%;background:#CFCABB;transform-style:preserve-3d}
+.core i{position:absolute;inset:0;background:#CFCABB}
+.core i:nth-child(1){transform:rotateY(90deg)}
+.core i:nth-child(2){transform:rotateX(90deg)}
+.res{font-weight:800;font-stretch:115%;font-size:clamp(.8rem,2.6vw,1.2rem);min-height:1.4em;line-height:1.2}
+.res.pop{animation:pop .35s ease}
+.soundbtn{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:.3rem .8rem;font-size:.85rem;justify-self:start}
+@keyframes pop{from{transform:scale(1.6);opacity:0}}
+.round{font-size:clamp(.7rem,2vw,.9rem);font-weight:700;border:1.5px solid var(--ink);border-radius:999px;padding:1px 10px}
+
+/* ---------- side ---------- */
+.side{display:grid;gap:12px}
+.pl{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card)}
+.pl.now{border-color:var(--ink);box-shadow:4px 4px 0 var(--ink)}
+.pl .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl .bal{font-weight:800;font-variant-numeric:tabular-nums;font-stretch:110%}
+.pl .meta{grid-column:2/4;font-size:.78rem;color:var(--ink2)}
+.actions{display:grid;gap:8px}
+.log{max-height:180px;overflow:auto;font-size:.85rem;color:var(--ink2);margin:0;padding-left:18px}
+.log li{margin-bottom:3px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.78rem;color:var(--ink2);margin-top:10px;justify-content:center}
+.legend span{display:inline-flex;gap:5px;align-items:center}
+.legend i{width:12px;height:12px;border-radius:3px;background:var(--c)}
+
+/* ---------- modal ---------- */
+.veil{position:fixed;inset:0;background:rgba(10,20,14,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.veil.open{display:flex}
+.modal{position:relative;width:min(440px,100%);background:var(--card);border:2.5px solid var(--ink);border-radius:16px;overflow:hidden;max-height:calc(100% - 20px);overflow-y:auto}
+.modal .head{background:var(--c);color:#fff;padding:14px 18px 12px}
+.modal .kind{font-size:.85rem;opacity:.92}
+.modal h3{margin:0;font-stretch:115%;font-size:1.5rem;line-height:1.1}
+.modal .body{padding:16px 18px 18px;display:grid;gap:12px}
+.modal .body p{margin:0}
+.modal .amount{font-size:1.9rem;font-weight:800;font-stretch:110%;font-variant-numeric:tabular-nums}
+.opts{display:grid;gap:8px}
+.opts button{text-align:left;border:1.5px solid var(--ink);background:var(--paper);border-radius:10px;padding:.6rem .8rem;font-weight:600}
+.opts button.right{background:var(--mun);color:#fff;border-color:var(--mun)}
+.opts button.wrong{background:var(--stamp);color:#fff;border-color:var(--stamp)}
+.stampmark{position:absolute;top:34%;left:50%;transform:translate(-50%,-50%) rotate(-14deg);border:5px solid var(--stamp);color:var(--stamp);font-weight:800;font-stretch:125%;font-size:2.6rem;padding:2px 18px;border-radius:10px;opacity:0;pointer-events:none;background:color-mix(in srgb,var(--card) 70%,transparent)}
+.stampmark.go{animation:stamp .45s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes stamp{from{opacity:0;transform:translate(-50%,-50%) rotate(-14deg) scale(2.2)}to{opacity:1;transform:translate(-50%,-50%) rotate(-14deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){.stampmark.go{animation:none;opacity:1}.cube{transition:none}.res.pop{animation:none}.die.throw .toss,.die.throw .shadow{animation:none}}
+
+/* ---------- final ---------- */
+.final{display:grid;gap:16px}
+.final h2{margin:0;font-stretch:120%;font-size:1.6rem}
+.receipts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.receipt{font-family:"Courier Prime","Courier New",monospace;background:var(--card);border:1.5px dashed var(--ink2);padding:14px;font-size:.9rem;line-height:1.45}
+.receipt .big{font-size:1.5rem;font-weight:700}
+.receipt hr{border:0;border-top:1.5px dashed var(--ink2);margin:8px 0}
+
+/* ---------- docs ---------- */
+.doc{max-width:760px}
+.doc h2{font-stretch:115%;font-size:1.45rem;margin:1.8rem 0 .5rem;line-height:1.15}
+.doc h2:first-child{margin-top:0}
+.doc h3{font-size:1.08rem;margin:1.2rem 0 .3rem}
+.doc p,.doc li{max-width:70ch}
+.doc ol,.doc ul{padding-left:1.3rem}
+.doc li{margin-bottom:.35rem}
+.tbl{overflow-x:auto;border:1.5px solid var(--line);border-radius:10px;margin:.6rem 0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:540px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--center)}
+td .sw{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c);margin-right:6px}
+.note{border-left:4px solid var(--fed);padding:.4rem .9rem;background:var(--card);border-radius:0 8px 8px 0}
+.pass{font-family:"Courier Prime","Courier New",monospace;border:2px solid var(--ink);border-radius:10px;padding:14px 16px;background:var(--card);max-width:420px;line-height:1.7}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Cidade dos Tributos</h1>
+      <p class="sub">Um banco imobiliário em que tudo o que você faz tem imposto, taxa ou contribuição.</p>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="jogar">Jogar</button>
+      <button role="tab" aria-selected="false" data-tab="regras">Regras</button>
+      <button role="tab" aria-selected="false" data-tab="montagem">Montagem</button>
+    </nav>
+  </header>
+
+  <!-- ================= JOGAR ================= -->
+  <section id="tab-jogar">
+    <div id="setup" class="panel setup">
+      <h2>Nova partida</h2>
+      <div class="players-in" id="namesIn"></div>
+      <div class="row">
+        <label class="field">Saldo inicial (T$)<input type="number" id="startBal" value="1000" min="100" step="50"></label>
+        <label class="field">Rodadas<input type="number" id="maxRounds" value="6" min="1" max="15"></label>
+        <label class="field">Saldo mínimo final (T$)<input type="number" id="floorBal" value="500" min="0" step="50"></label>
+      </div>
+      <p class="hint">Deixe em branco os nomes de quem não vai jogar. Mínimo de 1 jogador.</p>
+      <div><button class="btn" id="startBtn">Começar partida</button></div>
+    </div>
+
+    <div id="play" hidden>
+      <div class="game">
+        <div>
+          <div class="board" id="board"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <aside class="side">
+          <div id="plist" class="side"></div>
+          <div class="panel actions">
+            <div id="rollArea"></div>
+            <ul class="log" id="log"></ul>
+          </div>
+          <button class="btn ghost" id="abortBtn">Encerrar partida agora</button>
+        </aside>
+      </div>
+    </div>
+
+    <div id="final" class="final" hidden></div>
+  </section>
+
+  <!-- ================= REGRAS ================= -->
+  <section id="tab-regras" class="doc" hidden>
+    <h2>A ideia em uma frase</h2>
+    <p>Cada visitante recebe T$ 1.000 em Tributinhos, dá a volta pela Cidade dos Tributos pagando (e às vezes recuperando) impostos, taxas e contribuições, e sai com o saldo que sobrou para gastar nos outros 3 stands.</p>
+
+    <h2>Como começa</h2>
+    <ol>
+      <li>Na recepção, cada visitante ganha o <b>Passaporte do Contribuinte</b> com T$ 1.000 anotado como saldo inicial.</li>
+      <li>Formam-se grupos de 1 a 4 jogadores. Cada um escolhe uma cor de peão (ou veste o colete da cor, se o tabuleiro for de chão).</li>
+      <li>Todos começam na casa <b>Largada</b>. A ordem de jogo é a ordem em que os nomes foram digitados na tela.</li>
+    </ol>
+
+    <h2>Na sua vez</h2>
+    <ol>
+      <li>Toque em <b>Jogar os dados</b> (ou nos próprios dados, no centro da tela). Os dois dados rolam e a soma aparece sozinha. O peão anda automaticamente na tela; no tabuleiro físico, o jogador anda a mesma quantidade de casas.</li>
+      <li>O mediador lê a casa em voz alta, com a explicação curta do tributo.</li>
+      <li>Faça o que a casa manda:
+        <ul>
+          <li><b>Casa de tributo</b> (imposto, taxa ou contribuição): pague o valor indicado.</li>
+          <li><b>Casa de benefício</b> (Nota Premiada, Restituição do IR): receba o valor.</li>
+          <li><b>Carta Fiscal</b>: tire uma carta. Pode ser um fato do dia a dia (paga ou recebe) ou uma pergunta. Acertou a pergunta, ganha T$ 30; errou, não perde nada.</li>
+          <li><b>Malha Fina</b>: escolha entre pagar multa de T$ 30 ou ficar uma vez sem jogar.</li>
+          <li><b>Praça Pública</b>: descanse. É onde o seu tributo virou serviço.</li>
+          <li><b>Largada</b>: só quem <i>para</i> nela recebe o 13º salário (T$ 100 brutos, com T$ 15 retidos de imposto de renda na fonte = T$ 85 líquidos). Passar pela Largada não rende nada.</li>
+        </ul>
+      </li>
+      <li>A tela passa a vez para o próximo jogador.</li>
+    </ol>
+
+    <h2>Como termina</h2>
+    <ol>
+      <li>A partida acaba depois de <b>6 rodadas</b> (cada jogador joga 6 vezes, cerca de 8 minutos com 4 pessoas). Se a fila estiver grande, reduza para 4 rodadas.</li>
+      <li><b>Faixa de isenção:</b> ninguém sai com menos de T$ 500. Quem terminar abaixo disso tem o saldo completado até T$ 500. Isso garante que todos consigam aproveitar os outros stands.</li>
+      <li>O banqueiro anota o saldo final e o código do comprovante no Passaporte e carimba.</li>
+      <li>O visitante segue para os outros 3 stands levando o saldo.</li>
+    </ol>
+
+    <h2>Regras que evitam discussão na fila</h2>
+    <ul>
+      <li>O saldo nunca fica negativo durante a partida: se não der para pagar tudo, paga-se o que tiver.</li>
+      <li>Na pergunta da Carta Fiscal, vale a primeira resposta dita em voz alta. Pode pedir ajuda para a plateia, mas o jogador decide.</li>
+      <li>O mediador tem a palavra final.</li>
+    </ul>
+
+    <h2>O recado educativo de cada partida</h2>
+    <p>No fim, a tela mostra quanto cada jogador pagou em tributos e quanto recebeu de volta. Vale fechar com três perguntas rápidas: qual tributo doeu mais? Qual era municipal, estadual ou federal? Qual casa não era tributo? (Resposta: o pedágio, que é tarifa.)</p>
+  </section>
+
+  <!-- ================= MONTAGEM ================= -->
+  <section id="tab-montagem" class="doc" hidden>
+    <h2>O que vocês vão precisar</h2>
+    <h3>Jogo</h3>
+    <ul>
+      <li><b>Tabuleiro</b> com 20 casas em volta de um quadrado (6 casas por lado, contando as quinas). Duas opções:
+        <ul>
+          <li>De chão: lona ou banner de cerca de 2,5 × 2,5 m com casas de 40 × 40 cm. Os próprios visitantes são os peões, usando coletes coloridos. Chama muita atenção na feira.</li>
+          <li>De mesa: impressão A1 ou A0 em papel fosco ou adesivo sobre MDF, com peões grandes.</li>
+        </ul>
+      </li>
+            <li><b>4 peões ou 4 coletes</b> nas cores vermelho, azul, amarelo e roxo.</li>
+      <li><b>Baralho da Carta Fiscal</b> com as 20 cartas da lista abaixo, impressas em tamanho A6 e plastificadas.</li>
+      <li><b>Uma TV, notebook ou tablet</b> com este jogo aberto, que rola os dados, faz as vezes de banco (controla saldos), mostra as casas e gera o comprovante. Se for tabuleiro de chão, vale uma TV grande virada para os jogadores.</li>
+    </ul>
+    <h3>Passaporte e integração com os outros stands</h3>
+    <ul>
+      <li><b>Passaporte do Contribuinte</b>: um cartão impresso por visitante (modelo abaixo). Tiragem sugerida: o público esperado mais 20%.</li>
+      <li>Carimbo do stand e canetas.</li>
+      <li>Opcional: cédulas de Tributinhos (10, 20, 50 e 100) se quiserem algo para pegar na mão. O passaporte sozinho já resolve e dá menos trabalho.</li>
+    </ul>
+    <h3>Sinalização</h3>
+    <ul>
+      <li>Um banner com a legenda de cores: municipal, estadual, federal, reforma tributária e “não é tributo”.</li>
+      <li>Uma placa com a diferença entre <b>imposto</b> (não tem contrapartida direta), <b>taxa</b> (serviço específico prestado a você) e <b>contribuição</b> (finalidade definida, como previdência ou obra que valorizou seu imóvel).</li>
+    </ul>
+    <h3>Equipe por turno</h3>
+    <ul>
+      <li><b>Recepção:</b> organiza a fila, entrega passaportes e forma os grupos.</li>
+      <li><b>Mediador:</b> anima a partida, lê casas e cartas, explica os tributos.</li>
+      <li><b>Banqueiro:</b> opera a tela, anota o saldo final e carimba o passaporte.</li>
+    </ul>
+
+    <h2>As 20 casas do tabuleiro</h2>
+    <p>Na ordem em que os peões andam, a partir da Largada. A cor da faixa no topo de cada casa indica a esfera.</p>
+    <div class="tbl"><table id="tilesTbl"></table></div>
+
+    <h2>Baralho da Carta Fiscal</h2>
+    <p>Doze cartas de fato do dia a dia e oito perguntas. Nas perguntas, a resposta certa está em negrito (não imprimam o negrito na carta).</p>
+    <div class="tbl"><table id="cardsTbl"></table></div>
+
+    <h2>Modelo do Passaporte do Contribuinte</h2>
+    <div class="pass">
+      PASSAPORTE DO CONTRIBUINTE<br>
+      Nome: ______________________<br>
+      Saldo inicial ........ T$ 1.000<br>
+      Cidade dos Tributos .. T$ ______<br>
+      Código comprovante ... ______<br>
+      Stand 1 gastou ....... T$ ______<br>
+      Stand 2 gastou ....... T$ ______<br>
+      Stand 3 gastou ....... T$ ______<br>
+      Saldo final .......... T$ ______<br>
+      [ carimbo ] [ carimbo ] [ carimbo ] [ carimbo ]
+    </div>
+
+    <h2>Como amarrar com os outros 3 stands</h2>
+    <ul>
+      <li>Com a faixa de isenção, todo visitante chega aos stands com pelo menos T$ 500, e a maioria chega com algo entre T$ 700 e T$ 900. Preços entre T$ 150 e T$ 300 por atividade ou brinde funcionam bem.</li>
+      <li>Sugestão para os outros stands: mostrar o preço com o <b>tributo embutido destacado</b> (por exemplo, “T$ 200, dos quais T$ 50 são tributos”). Reforça a mesma mensagem sem repetir o jogo.</li>
+      <li>Se algum stand tiver brinde físico, o saldo do passaporte vira a “moeda” de troca, e o último carimbo marca que o visitante completou o circuito.</li>
+    </ul>
+    <p class="note">Os valores do jogo são didáticos e não representam alíquotas reais. As informações sobre a Reforma Tributária seguem o cronograma previsto em lei; vale conferir se houve alguma mudança antes da feira.</p>
+  </section>
+</div>
+
+<!-- modal -->
+<div class="veil" id="veil" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal" id="modal">
+    <div class="head" id="mHead"><div class="kind" id="mKind"></div><h3 id="mTitle"></h3></div>
+    <div class="body" id="mBody"></div>
+    <div class="stampmark" id="stamp">PAGO</div>
+  </div>
+</div>
+
+<script>
+/* ======================= DADOS ======================= */
+const ESF = {
+  mun:{label:'Municipal',c:'var(--mun)'},
+  est:{label:'Estadual',c:'var(--est)'},
+  fed:{label:'Federal',c:'var(--fed)'},
+  ref:{label:'Reforma Tributária',c:'var(--ref)'},
+  nt:{label:'Não é tributo',c:'var(--nt)'},
+  bonus:{label:'Benefício',c:'var(--bonus)'},
+  carta:{label:'Carta Fiscal',c:'var(--carta)'},
+  esp:{label:'Especial',c:'var(--ink2)'}
+};
+const TILES = [
+  {n:'Largada',k:'start',e:'esp',v:85,d:'Parou exatamente na Largada: recebeu o 13º salário de T$ 100, mas T$ 15 ficaram retidos na fonte como imposto de renda. Entram T$ 85.'},
+  {n:'IPTU',k:'trib',e:'mun',sp:'Imposto',v:80,d:'Imposto sobre a Propriedade Predial e Territorial Urbana. Todo ano, quem tem imóvel na cidade paga à prefeitura, conforme o valor do imóvel.'},
+  {n:'Carta Fiscal',k:'card',e:'carta'},
+  {n:'ICMS',k:'trib',e:'est',sp:'Imposto',v:60,d:'Imposto sobre Circulação de Mercadorias e Serviços. Vem embutido no preço do que você compra no mercado: você paga sem perceber.'},
+  {n:'Taxa de lixo',k:'trib',e:'mun',sp:'Taxa',v:30,d:'Taxa é o tributo cobrado por um serviço específico que o poder público presta a você, como a coleta do lixo da sua casa.'},
+  {n:'Nota Premiada',k:'bonus',e:'bonus',v:50,d:'Você pediu CPF na nota. Vários estados devolvem parte do ICMS e sorteiam prêmios para quem pede nota fiscal.'},
+  {n:'IPVA',k:'trib',e:'est',sp:'Imposto',v:90,d:'Imposto sobre a Propriedade de Veículos Automotores. Pago todo ano por quem tem carro ou moto; metade fica com o município onde o veículo está registrado.'},
+  {n:'Pedágio',k:'trib',e:'nt',sp:'Tarifa',v:20,d:'Pegadinha! Na rodovia concedida, o pedágio é uma tarifa paga à concessionária, ou seja, um preço público, e não um tributo.'},
+  {n:'Carta Fiscal',k:'card',e:'carta'},
+  {n:'ISS',k:'trib',e:'mun',sp:'Imposto',v:40,d:'Imposto Sobre Serviços. A prefeitura cobra sobre serviços como cabeleireiro, oficina mecânica e streaming.'},
+  {n:'Malha Fina',k:'malha',e:'esp',d:'A Receita encontrou uma inconsistência na sua declaração. Pague multa de T$ 30 ou fique uma vez sem jogar.'},
+  {n:'Imposto de Renda',k:'trib',e:'fed',sp:'Imposto',v:90,d:'Na declaração anual, faltou imposto sobre a renda do ano. A Receita Federal cobra a diferença.'},
+  {n:'Contrib. de melhoria',k:'trib',e:'mun',sp:'Contribuição de melhoria',v:60,d:'A prefeitura asfaltou sua rua e seu imóvel valorizou. A contribuição de melhoria cobra parte dessa valorização para custear a obra.'},
+  {n:'Carta Fiscal',k:'card',e:'carta'},
+  {n:'IOF',k:'trib',e:'fed',sp:'Imposto',v:30,d:'Imposto sobre Operações Financeiras. Aparece em compras internacionais no cartão, no câmbio e em empréstimos.'},
+  {n:'Praça Pública',k:'rest',e:'esp',d:'Seus tributos viraram escola, posto de saúde e esta praça. Descanse: nada a pagar.'},
+  {n:'INSS',k:'trib',e:'fed',sp:'Contribuição',v:70,d:'Contribuição previdenciária descontada do salário. Garante aposentadoria, auxílio por incapacidade e salário-maternidade.'},
+  {n:'Imposto Seletivo',k:'trib',e:'ref',sp:'Imposto',v:50,d:'Criado pela Reforma Tributária para encarecer produtos que fazem mal à saúde ou ao meio ambiente, como cigarro e bebidas alcoólicas. Previsto para começar em 2027.'},
+  {n:'Restituição do IR',k:'bonus',e:'bonus',v:80,d:'Durante o ano foi retido mais imposto de renda do que o devido. Na declaração, a Receita devolve a diferença.'},
+  {n:'IBS e CBS',k:'trib',e:'ref',sp:'Imposto e contribuição',v:60,d:'O IVA dual da Reforma Tributária: a CBS (federal) substitui PIS e Cofins, e o IBS (estados e municípios) substitui ICMS e ISS. A transição vai até 2033.'}
+];
+const CARDS = [
+  {t:'Declarou o imposto de renda fora do prazo. Multa por atraso.',v:-40},
+  {t:'Pediu nota fiscal em todas as compras do mês e foi sorteado.',v:40},
+  {t:'Doou ao Fundo da Criança e do Adolescente na declaração e abateu do imposto devido.',v:25},
+  {t:'Pagou o IPVA em cota única, com desconto.',v:20},
+  {t:'Atrasou o IPTU: juros e multa.',v:-30},
+  {t:'Comprou sem nota. O produto quebrou e ficou sem garantia.',v:-35},
+  {t:'Recebeu uma herança. Pague o ITCMD, imposto estadual sobre herança e doação.',v:-50},
+  {t:'Comprou um apartamento. Pague o ITBI, imposto municipal sobre transmissão de imóveis.',v:-60},
+  {t:'Formalizou seu negócio como MEI: paga o DAS mensal e passa a ter cobertura do INSS.',v:-15},
+  {t:'Cashback da Reforma: famílias de baixa renda recebem de volta parte do IBS e da CBS.',v:30},
+  {t:'Avance até a Largada e receba o 13º.',move:0},
+  {t:'Inconsistência na declaração: vá para a Malha Fina.',move:10},
+  {q:'O IPVA é um imposto de qual esfera?',o:['Federal','Estadual','Municipal'],a:1},
+  {q:'A coleta de lixo da sua casa é paga por meio de:',o:['Imposto','Taxa','Contribuição'],a:1},
+  {q:'Qual destes NÃO é tributo?',o:['IPTU','Pedágio de rodovia concedida','ISS'],a:1},
+  {q:'O ISS incide sobre:',o:['Mercadorias','Serviços','Renda'],a:1},
+  {q:'Pela Reforma Tributária, a CBS substitui:',o:['PIS e Cofins','ICMS e ISS','IPVA e IPTU'],a:0},
+  {q:'Quem cobra o IPTU?',o:['União','Estado','Município'],a:2},
+  {q:'O imposto de renda incide sobre:',o:['Patrimônio','Renda','Consumo'],a:1},
+  {q:'Qual imposto a Reforma criou para produtos que fazem mal à saúde?',o:['IOF','Imposto Seletivo','ICMS'],a:1}
+];
+const COLORS = [{n:'Vermelho',c:'#D9412E'},{n:'Azul',c:'#2F6FD6'},{n:'Amarelo',c:'#E8B420'},{n:'Roxo',c:'#8E4BB8'}];
+const QUIZ_PRIZE = 30, MALHA_FINE = 30;
+// posição na grade 6x6 de cada casa (linha, coluna), sentido horário a partir do canto superior esquerdo
+const POS = [];
+for(let c=0;c<6;c++) POS.push([1,c+1]);
+for(let r=1;r<6;r++) POS.push([r+1,6]);
+for(let c=4;c>=0;c--) POS.push([6,c+1]);
+for(let r=4;r>=1;r--) POS.push([r+1,1]);
+
+/* ======================= ESTADO ======================= */
+const KEY = 'cidadeTributos:v1';
+let S = null;
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function load(){ try{ const v = localStorage.getItem(KEY); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+const $ = s => document.querySelector(s);
+const fmt = n => 'T$ ' + Math.round(n).toLocaleString('pt-BR');
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+const esc = s => String(s).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+/* ======================= ABAS ======================= */
+document.querySelectorAll('nav.tabs button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('nav.tabs button').forEach(x=>x.setAttribute('aria-selected', x===b));
+    ['jogar','regras','montagem'].forEach(t=> $('#tab-'+t).hidden = (t!==b.dataset.tab));
+  });
+});
+
+/* ======================= SETUP ======================= */
+$('#namesIn').innerHTML = COLORS.map((c,i)=>`<label><span class="dot" style="background:${c.c}"></span><input id="nm${i}" placeholder="Jogador ${c.n.toLowerCase()}" maxlength="18" ${i===0?'value=""':''}></label>`).join('');
+
+$('#startBtn').addEventListener('click',()=>{
+  const players = [];
+  COLORS.forEach((c,i)=>{
+    const v = $('#nm'+i).value.trim();
+    if(v) players.push({name:v,color:c.c,pos:0,bal:0,paid:0,got:0,skip:false});
+  });
+  if(!players.length){ $('#nm0').focus(); $('#nm0').placeholder='Digite ao menos um nome'; return; }
+  const start = Math.max(100, +$('#startBal').value || 1000);
+  players.forEach(p=>p.bal=start);
+  S = {players, start, turn:0, round:1, max:Math.max(1,Math.min(15,+$('#maxRounds').value||6)),
+       floor:Math.max(0,+$('#floorBal').value||0), phys:false,
+       deck:shuffle(CARDS.map((_,i)=>i)), dice:[1,1], log:[], busy:false, over:false};
+  addLog('Partida começou. Cada jogador tem '+fmt(start)+'.');
+  save(); show();
+});
+
+/* ======================= RENDER ======================= */
+function buildBoard(){
+  const b = $('#board'); b.innerHTML='';
+  TILES.forEach((t,i)=>{
+    const d = document.createElement('div');
+    const corner = [0,5,10,15].includes(i);
+    d.className='tile'+(corner?' corner':'');
+    d.style.gridRow = POS[i][0]; d.style.gridColumn = POS[i][1];
+    d.style.setProperty('--c', ESF[t.e].c);
+    const val = t.k==='trib' ? '−'+t.v : (t.k==='bonus'||t.k==='start') ? '+'+t.v : t.k==='card' ? '?' : '';
+    d.innerHTML = `<div class="stripe"></div><div class="nm">${t.n}</div><div class="vl">${val}</div><div class="pawns" id="pw${i}"></div>`;
+    d.id='t'+i; b.appendChild(d);
+  });
+  const m = document.createElement('div'); m.className='mid';
+  m.innerHTML = `<div class="seal">Cidade dos<br>Tributos</div><div class="round" id="roundLbl"></div><div class="dice">${dieHTML('d0')}${dieHTML('d1')}</div><div class="res" id="resLbl" aria-live="polite"></div><div class="who" id="whoLbl"></div>`;
+  b.appendChild(m);
+  m.querySelector('.dice').addEventListener('click',()=>{ if(S && !S.over && !S.busy) roll(); });
+  $('#legend').innerHTML = ['mun','est','fed','ref','nt','bonus','carta'].map(k=>`<span><i style="--c:${ESF[k].c}"></i>${ESF[k].label}</span>`).join('');
+}
+const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+// rotação do cubo que deixa cada face virada para a frente
+const TARGET = {1:[0,0],2:[0,-90],3:[-90,0],4:[90,0],5:[0,90],6:[0,180]};
+const turns = [[0,0],[0,0]];
+function faceHTML(n){ return `<div class="face f${n}">${Array.from({length:9},(_,i)=>`<span class="${PIPS[n].includes(i)?'on':''}"></span>`).join('')}</div>`; }
+function dieHTML(id){ return `<div class="die" id="${id}" role="img" aria-label="dado"><div class="toss"><div class="cube"><div class="core"><i></i><i></i></div>${[1,2,3,4,5,6].map(faceHTML).join('')}</div></div><div class="shadow"></div></div>`; }
+function setDie(i,n,spin){
+  const el = $('#d'+i);
+  if(spin){
+    turns[i][0] += 2+Math.floor(Math.random()*3); turns[i][1] += 2+Math.floor(Math.random()*3);
+    el.querySelector('.toss').style.setProperty('--z', (Math.random()*30-15).toFixed(1)+'deg');
+    el.classList.remove('throw'); void el.offsetWidth; el.classList.add('throw');
+  }
+  const [x,y] = TARGET[n];
+  el.querySelector('.cube').style.transform = `rotateX(${x+360*turns[i][0]}deg) rotateY(${y+360*turns[i][1]}deg)`;
+  el.setAttribute('aria-label','dado '+n);
+}
+
+function renderPlay(){
+  TILES.forEach((_,i)=>{ $('#pw'+i).innerHTML=''; $('#t'+i).classList.remove('here'); });
+  S.players.forEach(p=>{ $('#pw'+p.pos).insertAdjacentHTML('beforeend',`<i style="background:${p.color}" title="${esc(p.name)}"></i>`); });
+  const cur = S.players[S.turn];
+  $('#t'+cur.pos).classList.add('here');
+  $('#roundLbl').textContent = `Rodada ${S.round} de ${S.max}`;
+  $('#whoLbl').innerHTML = `Vez de <b>${esc(cur.name)}</b>`;
+  $('#resLbl').textContent = S.rolling ? `${S.players[S.turn].name} está rolando…` : (S.last ? `${S.last.name} tirou ${S.last.a} + ${S.last.b} = ${S.last.a+S.last.b}` : '');
+  $('#plist').innerHTML = S.players.map((p,i)=>`
+    <div class="pl ${i===S.turn?'now':''}">
+      <span class="dot" style="background:${p.color}"></span>
+      <span class="nm">${esc(p.name)}</span>
+      <span class="bal">${fmt(p.bal)}</span>
+      <span class="meta">Pagou ${fmt(p.paid)} · recebeu ${fmt(p.got)}${p.last?' · último dado: '+p.last:''}${p.skip?' · perde a próxima vez':''}</span>
+    </div>`).join('');
+  const ra = $('#rollArea');
+  ra.innerHTML = `<button class="btn" style="width:100%" id="rollBtn" ${S.busy?'disabled':''}>${S.busy?'Rolando…':'Jogar os dados de '+esc(cur.name)}</button><p class="hint" style="margin-top:6px">Ou toque nos dados no centro do tabuleiro.</p>`;
+  $('#rollBtn').onclick = roll;
+  ra.insertAdjacentHTML('beforeend', `<button class="soundbtn" id="soundBtn" style="margin-top:8px">Som dos dados: ${soundOn?'ligado':'desligado'}</button>`);
+  $('#soundBtn').onclick=()=>{ soundOn=!soundOn; try{localStorage.setItem('cidadeTributos:som',soundOn?'1':'0');}catch(e){} renderPlay(); };
+  $('.dice').classList.toggle('locked', S.busy);
+  const ab=$('#abortBtn'); ab.disabled=S.busy; ab.textContent = S.busy ? 'Aguarde a jogada terminar para encerrar' : 'Encerrar partida agora';
+  $('#log').innerHTML = S.log.slice(-40).reverse().map(l=>`<li>${esc(l)}</li>`).join('');
+}
+function show(){
+  $('#setup').hidden = !!S;
+  $('#play').hidden = !S || S.over;
+  $('#final').hidden = !S || !S.over;
+  if(S && !S.over){ renderPlay(); }
+  if(S && S.over){ renderFinal(); }
+}
+function addLog(t){ S.log.push(t); }
+
+/* ======================= JOGADA ======================= */
+function roll(){
+  if(S.busy) return;
+  throwDice(1+Math.floor(Math.random()*6), 1+Math.floor(Math.random()*6));
+}
+let gen=0; // cada partida/encerramento invalida temporizadores antigos
+function later(fn,ms){ const g=gen; return window.setTimeout(()=>{ if(g===gen) fn(); }, ms); }
+let actx=null, soundOn=true;
+try{ soundOn = localStorage.getItem('cidadeTributos:som')!=='0'; }catch(e){}
+function hit(t,vol){
+  const len=Math.floor(actx.sampleRate*0.045), buf=actx.createBuffer(1,len,actx.sampleRate), d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,5);
+  const src=actx.createBufferSource(); src.buffer=buf;
+  const f=actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1600+Math.random()*1800; f.Q.value=2;
+  const g=actx.createGain(); g.gain.value=vol;
+  src.connect(f); f.connect(g); g.connect(actx.destination); src.start(t);
+}
+function diceSound(){
+  if(!soundOn) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended') actx.resume();
+    const t0=actx.currentTime;
+    [[0,.35],[.04,.25],[.08,.3],[.72,.9],[.75,.6],[1.04,.5],[1.08,.35],[1.22,.2],[1.25,.15]].forEach(([t,v])=>hit(t0+t+Math.random()*.02,v));
+  }catch(e){}
+}
+function throwDice(a,b){
+  const p = S.players[S.turn];
+  S.dice=[a,b]; S.busy=true; S.rolling=true;
+  renderPlay();
+  setDie(0,a,true); setDie(1,b,true); diceSound();
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  later(()=>{
+    S.rolling=false; S.last={name:p.name,a,b}; p.last=a+b;
+    renderPlay();
+    const r=$('#resLbl'); r.classList.remove('pop'); void r.offsetWidth; r.classList.add('pop');
+    later(()=>move(a+b), reduce?150:600);
+  }, reduce?200:1400);
+}
+function move(steps){
+  const p = S.players[S.turn];
+  S.busy = true; renderPlay();
+  addLog(`${p.name} tirou ${steps}.`);
+  let left = steps;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tick = ()=>{
+    p.pos = (p.pos+1)%TILES.length; left--;
+    renderPlay();
+    if(left>0) later(tick, reduce?40:170); else later(()=>land(p), 250);
+  };
+  later(tick, 350);
+}
+function pay(p,v){ const x = Math.min(v,p.bal); p.bal-=x; p.paid+=x; return x; }
+function gain(p,v){ p.bal+=v; p.got+=v; }
+
+function openModal(tile, kind, title, html){
+  const c = ESF[tile]?ESF[tile].c:tile;
+  $('#mHead').style.setProperty('--c',c);
+  $('#mKind').textContent = kind; $('#mTitle').textContent = title;
+  $('#mBody').innerHTML = html;
+  $('#stamp').className='stampmark';
+  $('#veil').classList.add('open');
+  const f = $('#mBody button'); if(f) f.focus();
+}
+function closeModal(){ $('#veil').classList.remove('open'); }
+function stampThen(text, fn){
+  const s = $('#stamp'); s.textContent=text; s.className='stampmark'; void s.offsetWidth; s.classList.add('go');
+  $('#mBody').querySelectorAll('button').forEach(b=>b.disabled=true);
+  later(()=>{ closeModal(); fn(); }, 850);
+}
+
+function land(p){
+  const t = TILES[p.pos];
+  if(t.k==='trib'){
+    const kind = `${t.sp} · ${ESF[t.e].label}`;
+    openModal(t.e, kind, t.n, `<div class="amount">−${fmt(t.v)}</div><p>${t.d}</p><button class="btn" id="ok">Pagar ${fmt(t.v)}</button>`);
+    $('#ok').onclick=()=>{ const x=pay(p,t.v); addLog(`${p.name} pagou ${fmt(x)} de ${t.n}.`); stampThen(t.e==='nt'?'PAGO':'PAGO', endTurn); };
+  } else if(t.k==='bonus' || t.k==='start'){
+    openModal(t.e, t.k==='start'?'Largada':'Benefício', t.k==='start'?'13º salário':t.n,
+      `<div class="amount">+${fmt(t.v)}</div><p>${t.d}</p><button class="btn" id="ok">Receber ${fmt(t.v)}</button>`);
+    $('#ok').onclick=()=>{
+      if(t.k==='start'){ p.got+=100; p.paid+=15; p.bal+=85; } else gain(p,t.v);
+      addLog(`${p.name} recebeu ${fmt(t.v)} (${t.k==='start'?'13º':t.n}).`); stampThen('CREDITADO', endTurn);
+    };
+  } else if(t.k==='card'){
+    drawCard(p);
+  } else if(t.k==='malha'){
+    malha(p);
+  } else {
+    openModal(t.e,'Descanso',t.n,`<p>${t.d}</p><button class="btn" id="ok">Continuar</button>`);
+    $('#ok').onclick=()=>{ addLog(`${p.name} descansou na Praça Pública.`); closeModal(); endTurn(); };
+  }
+}
+function malha(p){
+  const t = TILES[10];
+  openModal('esp','Receita Federal','Malha Fina',`<p>${t.d}</p><div class="opts"><button id="mPay">Pagar multa de ${fmt(MALHA_FINE)}</button><button id="mSkip">Ficar uma vez sem jogar</button></div>`);
+  $('#mPay').onclick=()=>{ const x=pay(p,MALHA_FINE); addLog(`${p.name} pagou ${fmt(x)} de multa na Malha Fina.`); stampThen('PAGO', endTurn); };
+  $('#mSkip').onclick=()=>{ p.skip=true; addLog(`${p.name} ficou retido na Malha Fina.`); closeModal(); endTurn(); };
+}
+function drawCard(p){
+  if(!S.deck.length) S.deck = shuffle(CARDS.map((_,i)=>i));
+  const c = CARDS[S.deck.shift()];
+  if(c.q){
+    openModal('carta','Carta Fiscal · pergunta','Valendo '+fmt(QUIZ_PRIZE),
+      `<p><b>${c.q}</b></p><div class="opts">${c.o.map((o,i)=>`<button data-i="${i}">${o}</button>`).join('')}</div><div id="qRes"></div>`);
+    $('#mBody').querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{
+      const i=+b.dataset.i, ok=i===c.a;
+      $('#mBody').querySelectorAll('.opts button').forEach((x,j)=>{ x.disabled=true; if(j===c.a) x.classList.add('right'); else if(j===i) x.classList.add('wrong'); });
+      if(ok){ gain(p,QUIZ_PRIZE); addLog(`${p.name} acertou a pergunta e ganhou ${fmt(QUIZ_PRIZE)}.`); }
+      else addLog(`${p.name} errou a pergunta.`);
+      $('#qRes').innerHTML = `<p>${ok?'Acertou! +'+fmt(QUIZ_PRIZE):'Não foi dessa vez. A resposta certa está em verde.'}</p><button class="btn" id="ok" style="margin-top:10px">Continuar</button>`;
+      $('#ok').onclick=()=>{ closeModal(); endTurn(); }; $('#ok').focus();
+    });
+  } else if(c.move!==undefined){
+    openModal('carta','Carta Fiscal',c.move===0?'Volta para casa':'Malha Fina',`<p>${c.t}</p><button class="btn" id="ok">Mover peão</button>`);
+    $('#ok').onclick=()=>{ closeModal(); p.pos=c.move; renderPlay(); addLog(`${p.name}: ${c.t}`); later(()=>land(p),350); };
+  } else {
+    const neg = c.v<0;
+    openModal('carta','Carta Fiscal',neg?'Revés':'Sorte',`<div class="amount">${neg?'−':'+'}${fmt(Math.abs(c.v))}</div><p>${c.t}</p><button class="btn" id="ok">${neg?'Pagar':'Receber'} ${fmt(Math.abs(c.v))}</button>`);
+    $('#ok').onclick=()=>{
+      if(neg){ const x=pay(p,-c.v); addLog(`${p.name} pagou ${fmt(x)} (Carta Fiscal).`); stampThen('PAGO',endTurn); }
+      else { gain(p,c.v); addLog(`${p.name} recebeu ${fmt(c.v)} (Carta Fiscal).`); stampThen('CREDITADO',endTurn); }
+    };
+  }
+}
+function endTurn(){
+  S.busy=false;
+  let guard=0;
+  do{
+    S.turn++;
+    if(S.turn>=S.players.length){ S.turn=0; S.round++; }
+    if(S.round>S.max){ finish(); return; }
+    const n = S.players[S.turn];
+    if(n.skip){ n.skip=false; addLog(`${n.name} perdeu a vez (Malha Fina).`); continue; }
+    break;
+  } while(++guard<20);
+  save(); renderPlay();
+}
+function finish(){
+  gen++; closeModal();
+  S.players.forEach(p=>{
+    p.code = 'CT-' + Math.random().toString(36).slice(2,6).toUpperCase();
+    p.iso = 0;
+    if(p.bal < S.floor){ p.iso = S.floor - p.bal; p.bal = S.floor; }
+  });
+  S.over=true; S.busy=false; save(); show(); window.scrollTo(0,0);
+}
+function renderFinal(){
+  const ps = S.players.slice().sort((a,b)=>b.bal-a.bal);
+  const hora = new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+  $('#final').innerHTML = `
+    <div>
+      <h2>Fim da partida</h2>
+      <p class="hint" style="font-size:.95rem;max-width:62ch">Anotem o saldo e o código no Passaporte de cada um. Para fechar a conversa: no Brasil, a carga tributária gira em torno de um terço de tudo o que o país produz. Quanto do seu dinheiro foi para tributos nesta partida?</p>
+    </div>
+    <div class="receipts">${ps.map((p,i)=>{
+      const pct = S.start ? Math.round(100*p.paid/(S.start+p.got)) : 0;
+      return `<div class="receipt">
+        COMPROVANTE DE ARRECADAÇÃO<br>Cidade dos Tributos<hr>
+        ${i+1}º lugar · <b>${esc(p.name)}</b><br>
+        Saldo inicial: ${fmt(S.start)}<br>
+        Tributos pagos: ${fmt(p.paid)}<br>
+        Recebido de volta: ${fmt(p.got)}<br>
+        ${p.iso?`Faixa de isenção: +${fmt(p.iso)}<br>`:''}
+        Foi para tributos: ${pct}% do que passou pela sua mão<hr>
+        SALDO PARA OS STANDS<br><span class="big">${fmt(p.bal)}</span><br>
+        Código: <b>${p.code}</b><br>${hora}
+      </div>`;}).join('')}
+    </div>
+    <div class="row"><button class="btn" id="againBtn">Nova partida</button></div>`;
+  $('#againBtn').onclick=()=>{ gen++; S=null; try{localStorage.removeItem(KEY);}catch(e){} show(); };
+}
+$('#abortBtn').onclick=()=>{
+  if(!S || S.over || S.busy) return;
+  openModal('esp','Encerrar partida','Encerrar agora?',
+    `<p>Os saldos atuais viram o saldo final e os comprovantes são gerados. A faixa de isenção continua valendo.</p>
+     <div class="opts"><button id="endYes">Encerrar e gerar comprovantes</button><button id="endNo">Continuar jogando</button></div>`);
+  $('#endYes').onclick=()=>{ closeModal(); finish(); };
+  $('#endNo').onclick=()=>closeModal();
+};
+
+/* ======================= TABELAS DE MONTAGEM ======================= */
+$('#tilesTbl').innerHTML = `<thead><tr><th>#</th><th>Casa</th><th>Esfera / tipo</th><th>Efeito</th><th>O que o mediador explica</th></tr></thead><tbody>${
+  TILES.map((t,i)=>{
+    const ef = t.k==='trib'?'Paga '+fmt(t.v): t.k==='bonus'?'Recebe '+fmt(t.v): t.k==='start'?'Parou nela: recebe '+fmt(t.v): t.k==='card'?'Tira uma Carta Fiscal': t.k==='malha'?'Paga '+fmt(MALHA_FINE)+' ou perde a vez':'Nada';
+    const tipo = t.sp ? `${ESF[t.e].label} · ${t.sp}` : ESF[t.e].label;
+    return `<tr><td>${i+1}</td><td><span class="sw" style="--c:${ESF[t.e].c}"></span><b>${t.n}</b></td><td>${tipo}</td><td>${ef}</td><td>${t.d||'Ver lista de cartas.'}</td></tr>`;
+  }).join('')}</tbody>`;
+$('#cardsTbl').innerHTML = `<thead><tr><th>#</th><th>Carta</th><th>Efeito</th></tr></thead><tbody>${
+  CARDS.map((c,i)=>{
+    if(c.q) return `<tr><td>${i+1}</td><td>${c.q}<br>${c.o.map((o,j)=>j===c.a?`<b>${o}</b>`:o).join(' / ')}</td><td>Acertou: +${fmt(QUIZ_PRIZE)}</td></tr>`;
+    const ef = c.move!==undefined ? (c.move===0?'Vai para a Largada e recebe o 13º':'Vai para a Malha Fina') : (c.v<0?'Paga '+fmt(-c.v):'Recebe '+fmt(c.v));
+    return `<tr><td>${i+1}</td><td>${c.t}</td><td>${ef}</td></tr>`;
+  }).join('')}</tbody>`;
+
+/* ======================= INÍCIO ======================= */
+buildBoard();
+S = load();
+if(S){ S.busy=false; S.rolling=false; S.phys=false; }
+setDie(0, S?S.dice[0]:1, false); setDie(1, S?S.dice[1]:1, false);
+show();
+</script>
+</body>
+</html>
